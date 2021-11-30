@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ReplaysToCSV": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Games\\World_of_Tanks_EU\\replays\" \"true\""
+    }
+  }
+}
