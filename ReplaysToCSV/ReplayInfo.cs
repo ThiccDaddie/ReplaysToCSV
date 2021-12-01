@@ -1,19 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ReplaysToCSV
+﻿namespace ReplaysToCSV
 {
-    internal enum BattleType
-    {
-        normal = 1,
-        assault = 2,
-        encounter = 3,
-        grand_battle = 4
-    }
-
     internal enum TierPosition
     {
         one_tier,

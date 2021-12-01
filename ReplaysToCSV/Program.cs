@@ -1,6 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using CsvHelper;
-using ReplaysToCSV;
+using CsvHelper.Configuration;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -9,11 +9,20 @@ namespace ReplaysToCSV
 {
     public class Program
     {
+
+        private static readonly CsvConfiguration config = new(CultureInfo.InvariantCulture)
+        {
+            NewLine = Environment.NewLine,
+        };
+
         public static void Main(string[] args)
         {
+            // path to the folder of replays to parse
             string path;
+            // incude subdirectories of said folder
             bool includeSubDirectories = false;
 
+            // need 1 or 2 arguments
             if (args.Length == 1 || args.Length == 2)
             {
                 path = args[0];
@@ -48,28 +57,34 @@ namespace ReplaysToCSV
 
             var replayReader = new ReplayReader();
 
+            // get all .wotreplay files in the folder
             IEnumerable<string> filePaths = Directory.EnumerateFiles(
                 path,
                 "*.wotreplay",
                 includeSubDirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+
+            // concurrentbag because we're adding replays in parrallel
             ConcurrentBag<ReplayInfo> replays = new();
             int failedReplays = 0;
 
+            // hahaha numbers go brrrr
             Stopwatch stopwatch = new();
             stopwatch.Start();
 
             int replayCount = 0;
+
+            // get a ReplayInfo object for each file
             var result = Parallel.ForEach(filePaths, filePath =>
-            {
-                var replay = replayReader.ReadReplayFile(filePath);
-                if (replay is null)
                 {
-                    failedReplays++;
-                    return;
-                }
-                replays.Add(replay);
-                replayCount++;
-            });
+                    var replay = replayReader.ReadReplayFile(filePath);
+                    if (replay is null)
+                    {
+                        failedReplays++;
+                        return;
+                    }
+                    replays.Add(replay);
+                    replayCount++;
+                });
             stopwatch.Stop();
 
             Console.WriteLine($"{failedReplays} replay(s) failed to parse.");
@@ -78,10 +93,10 @@ namespace ReplaysToCSV
 
             if (!replays.IsEmpty)
             {
-                //File.Create($@"{path}")
+                // Create a CSV file with all replays in it
                 string csvPath = @$"{path}\{DateTime.Now.ToFileTime()}.csv";
                 using (var writer = new StreamWriter(csvPath))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                using (var csv = new CsvWriter(writer, config))
                 {
                     csv.WriteRecords(replays);
                 }
