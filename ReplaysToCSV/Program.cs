@@ -76,11 +76,12 @@ namespace ReplaysToCSV
 
             // all available tanks
             var tankDict = GameData.GetTankDictionary();
+            var mapDict = GameData.GetMapDictionary();
 
             // get a ReplayInfo object for each file
             var result = Parallel.ForEach(filePaths, filePath =>
                 {
-                    var replay = ReplayReader.ReadReplayFile(filePath, tankDict);
+                    var replay = ReplayReader.ReadReplayFile(filePath, tankDict, mapDict);
                     if (replay is null)
                     {
                         failedReplays++;

@@ -34,5 +34,28 @@ namespace ReplaysToCSV
 
 			return tankDict;
 		}
+
+		public static Dictionary<string, string> GetMapDictionary()
+		{
+			// get the maps from the maplist and put them in a dictionary to have easy access
+			Dictionary<string, string> mapDict = new();
+			var maps = JObject.Parse(File.ReadAllText(@"mapList.json"));
+			foreach (var map in maps.Children())
+			{
+				var mapDetails = map.First;
+				if (mapDetails is not null)
+				{
+					// tier is... the tier 
+					string? name = mapDetails["name_i18n"]?.ToString();
+					string? arena_id = mapDetails["arena_id"]?.ToString();
+					if (name is not null && arena_id is not null)
+					{
+						mapDict.Add(arena_id, name);
+					}
+				}
+			}
+
+			return mapDict;
+		}
 	}
 }

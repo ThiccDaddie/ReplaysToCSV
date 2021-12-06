@@ -11,7 +11,10 @@ namespace ReplaysToCSV
 	internal static class ReplayReader
 	{
 
-		internal static ReplayInfo? ReadReplayFile(string path, Dictionary<string, (string name, int tier)> tankDict)
+		internal static ReplayInfo? ReadReplayFile(
+			string path,
+			Dictionary<string, (string name, int tier)> tankDict,
+			Dictionary<string, string> mapDict)
 		{
 			try
 			{
@@ -56,8 +59,13 @@ namespace ReplaysToCSV
 				// deserialize the data into a POCO
 				replayInfoWithVehicles = JsonConvert.DeserializeObject<ReplayInfoWithVehicles>(data.First());
 
-				if (replayInfoWithVehicles is not null && replayInfoWithVehicles.Vehicles is not null)
+				if (replayInfoWithVehicles is not null)
 				{
+					if (replayInfoWithVehicles.MapName is not null && mapDict.TryGetValue(replayInfoWithVehicles.MapName, out string? mapName))
+					{						
+						replayInfoWithVehicles.MapName = mapName;
+					}
+					if (replayInfoWithVehicles.Vehicles is not null)
 					{
 						// get the min and max tier in the replay
 						(int minTier, int maxTier) = GetTierSpread(replayInfoWithVehicles.Vehicles, tankDict);
@@ -74,57 +82,57 @@ namespace ReplaysToCSV
 							replayInfoWithVehicles.TierPosition = GetTierPosition(playerTier, minTier, maxTier);
 						}
 					}
+					if (data.Count > 1)
 					{
-						if (data.Count > 1)
+						try
 						{
-							try
+							JArray afterBattleInfo = JArray.Parse(data[1]);
 							{
-								JArray afterBattleInfo = JArray.Parse(data[1]);
+								var winningTeam = (int?)afterBattleInfo[0]?["common"]?["winnerTeam"];
+								if (winningTeam is not null)
 								{
-									var winningTeam = (int?)afterBattleInfo[0]?["common"]?["winnerTeam"];
-									if (winningTeam is not null)
+									int winningTeamInt = winningTeam.Value;
+									replayInfoWithVehicles.BattleResult = winningTeamInt switch
 									{
-										int winningTeamInt = winningTeam.Value;
-										replayInfoWithVehicles.BattleResult = winningTeamInt switch
-										{
-											0 => BattleResult.draw,
-											1 => BattleResult.victory,
-											2 => BattleResult.defeat,
-											_ => BattleResult.undefined
-										};
-									}
+										0 => BattleResult.draw,
+										1 => BattleResult.victory,
+										2 => BattleResult.defeat,
+										_ => BattleResult.undefined
+									};
 								}
-								{									
-									int teamSurvived = 0;
-									int enemySurvived = 0;
-									foreach (var property in afterBattleInfo[1].Children())
+								int? duration = (int?)afterBattleInfo[0]?["common"]?["duration"];
+								replayInfoWithVehicles.DurationInSeconds = duration;
+							}
+							{
+								int teamSurvived = 0;
+								int enemySurvived = 0;
+								foreach (var property in afterBattleInfo[1].Children())
+								{
+									var value = property.First();
+									if (value is not null)
 									{
-										var value = property.First();
-										if (value is not null)
+										int? team = (int?)value["team"];
+										bool? isAlive = (bool?)value["isAlive"];
+										if (team.HasValue && isAlive.HasValue)
 										{
-											int? team = (int?)value["team"];
-											bool? isAlive = (bool?)value["isAlive"];
-											if (team.HasValue && isAlive.HasValue)
+											if (team.Value == 1 && isAlive.Value)
 											{
-												if (team.Value == 1 && isAlive.Value)
-												{
-													teamSurvived++;
-												}
-												else if (team.Value == 2 && isAlive.Value)
-												{
-													enemySurvived++;
-												}
+												teamSurvived++;
+											}
+											else if (team.Value == 2 && isAlive.Value)
+											{
+												enemySurvived++;
 											}
 										}
 									}
-									replayInfoWithVehicles.TeamSurvived = teamSurvived;
-									replayInfoWithVehicles.EnemySurvived = enemySurvived;
 								}
+								replayInfoWithVehicles.TeamSurvived = teamSurvived;
+								replayInfoWithVehicles.EnemySurvived = enemySurvived;
 							}
-							catch
-							{
+						}
+						catch
+						{
 
-							}
 						}
 					}
 					return replayInfoWithVehicles;

@@ -27,6 +27,7 @@
         public string? MapName { get; set; }
         public int? Tier { get; set; } = -1;
         public TierPosition? TierPosition { get; set; } = ReplaysToCSV.TierPosition.undefined;
+        public int? DurationInSeconds { get; set; }        
         public BattleResult? BattleResult { get; set; } = ReplaysToCSV.BattleResult.undefined;
         public int? TeamSurvived { get; set; }
         public int? EnemySurvived { get; set; }
