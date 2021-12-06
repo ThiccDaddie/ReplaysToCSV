@@ -8,130 +8,171 @@ using System.Text;
 
 namespace ReplaysToCSV
 {
-    public class ReplayReader
-    {
-        private readonly Dictionary<string, (string name, int tier)> tankDict;
+	internal static class ReplayReader
+	{
 
-        internal ReplayReader()
-        {
-            // get the tanks from the tanklist and put them in a dictionary to have easy access
-            var tanks = JObject.Parse(File.ReadAllText(@"tanklist.json"));
-            tankDict = new();
-            foreach (var tank in tanks.Children())
-            {
-                var tankDetails = tank.First;
-                if (tankDetails is not null)
-                {
-                    // tag is the code name
-                    // name is the readable name
-                    // tier is... the tier 
-                    string? tag = tankDetails["tag"]?.ToString();
-                    string? name = tankDetails["name"]?.ToString();
-                    int? tier = tankDetails["tier"]?.ToObject<int>();
-                    if (tag is not null && name is not null && tier is not null)
-                    {
-                        tankDict.Add(tag, (name, tier.Value));
-                    }
-                }
-            }
-        }
+		internal static ReplayInfo? ReadReplayFile(string path, Dictionary<string, (string name, int tier)> tankDict)
+		{
+			try
+			{
+				//string data;
+				List<string> data = new();
+				using FileStream SourceStream = File.Open(path, FileMode.Open, FileAccess.Read);
 
-        internal ReplayInfo? ReadReplayFile(string path)
-        {
-            try
-            {
-                string data;
-                using (FileStream SourceStream = File.Open(path, FileMode.Open, FileAccess.Read))
-                {
-                    // The offset in bytes at which you can find the "block size"
-                    int dataBlockSzOffset = 8;
-                    // The block size in bytes
-                    byte[] blockSizeInBytes = new byte[4];
-                    // The block size
-                    int blockSize;
-                    // The block of data
-                    byte[] block;
+				// The number of data blocks
+				int blockCount;
 
-                    // skip ahead until the block size
-                    SourceStream.Seek(dataBlockSzOffset, SeekOrigin.Begin);
-                    // get the blocksize
-                    SourceStream.Read(blockSizeInBytes, 0, 4);
-                    // convert the blocksize to int
-                    blockSize = BitConverter.ToInt32(blockSizeInBytes, 0);
+				{
+					byte[] blockCountInBytes = new byte[4];
+					SourceStream.Seek(4, SeekOrigin.Begin);
+					SourceStream.Read(blockCountInBytes, 0, 4);
+					blockCount = BitConverter.ToInt32(blockCountInBytes, 0);
+				}
 
-                    block = new byte[blockSize];
-                    // get the block of data
-                    SourceStream.Read(block, 0, blockSize);
-                    // decode the data
-                    data = Encoding.Default.GetString(block);
-                }
+				for (int i = 0; i < blockCount; i++)
+				{
+					// The block size; how many bytes to read for the current block
+					int blockSize;
+					{
+						byte[] blockSizeInBytes = new byte[4];
+						SourceStream.Read(blockSizeInBytes, 0, 4);
+						blockSize = BitConverter.ToInt32(blockSizeInBytes, 0);
+					}
 
-                ReplayInfoWithVehicles? replayInfoWithVehicles;
-                // deserialize the data into a POCO
-                replayInfoWithVehicles = JsonConvert.DeserializeObject<ReplayInfoWithVehicles>(data);
+					// The current block of data
+					byte[] block = new byte[blockSize];
+					SourceStream.Read(block, 0, blockSize);
 
-                if (replayInfoWithVehicles is not null && replayInfoWithVehicles.Vehicles is not null)
-                {
-                    // get the min and max tier in the replay
-                    (int minTier, int maxTier) = GetTierSpread(replayInfoWithVehicles.Vehicles);
+					// decode the data
+					data.Add(Encoding.Default.GetString(block));
+				}
 
-                    string? playerVehicleTag = replayInfoWithVehicles.PlayerVehicle;
+				if (!data.Any())
+				{
+					return null;
+				}
 
-                    if (playerVehicleTag is not null)
-                    {
-                        playerVehicleTag = playerVehicleTag[(playerVehicleTag.IndexOf("-") + 1)..];
-                        // get the player tier so that we can compare it using GetTierPosition
-                        int playerTier = tankDict[playerVehicleTag].tier;
-                        replayInfoWithVehicles.Tier = playerTier;
-                        replayInfoWithVehicles.PlayerVehicle = tankDict[playerVehicleTag].name;
-                        replayInfoWithVehicles.TierPosition = GetTierPosition(playerTier, minTier, maxTier);
-                        return replayInfoWithVehicles;
-                    }
-                }
-            }
-            catch
-            {
-            }
-            return null;
-        }
+				ReplayInfoWithVehicles? replayInfoWithVehicles;
+				// deserialize the data into a POCO
+				replayInfoWithVehicles = JsonConvert.DeserializeObject<ReplayInfoWithVehicles>(data.First());
 
-        private static TierPosition GetTierPosition(int tier, int minTier, int maxTier)
-        {
-            int tierLambda = maxTier - minTier;
-            switch (tierLambda)
-            {
-                case (0):
-                    return TierPosition.one_tier;
-                case (1):
-                    if (tier == maxTier) return TierPosition.two_tier_top;
-                    return TierPosition.two_tier_bottom;
-                case (2):
-                    if (tier == maxTier) return TierPosition.three_tier_top;
-                    if (tier == minTier) return TierPosition.three_tier_bottom;
-                    return TierPosition.three_tier_middle;
-                default:
-                    return TierPosition.invalid;
-            }
-        }
+				if (replayInfoWithVehicles is not null && replayInfoWithVehicles.Vehicles is not null)
+				{
+					{
+						// get the min and max tier in the replay
+						(int minTier, int maxTier) = GetTierSpread(replayInfoWithVehicles.Vehicles, tankDict);
 
-        private (int minTier, int maxTier) GetTierSpread(Dictionary<string, Tank> players)
-        {
-            IEnumerable<int> tiers = players
-                .Select(player =>
-                {
-                    string? vehicleType = player.Value.VehicleType;
-                    if (vehicleType == null) { return 0; }
-                    string vehicleTag = vehicleType[(vehicleType.IndexOf(":") + 1)..];
-                    if (tankDict.ContainsKey(vehicleTag))
-                    {
-                        return tankDict[vehicleTag].tier;
-                    }
-                    return 0;
-                })
-                .Distinct()
-                .Where(tier => tier != 0);
+						string? playerVehicleTag = replayInfoWithVehicles.PlayerVehicle;
 
-            return (tiers.Min(), tiers.Max());
-        }
-    }
+						if (playerVehicleTag is not null)
+						{
+							playerVehicleTag = playerVehicleTag[(playerVehicleTag.IndexOf("-") + 1)..];
+							// get the player tier so that we can compare it using GetTierPosition
+							int playerTier = tankDict[playerVehicleTag].tier;
+							replayInfoWithVehicles.Tier = playerTier;
+							replayInfoWithVehicles.PlayerVehicle = tankDict[playerVehicleTag].name;
+							replayInfoWithVehicles.TierPosition = GetTierPosition(playerTier, minTier, maxTier);
+						}
+					}
+					{
+						if (data.Count > 1)
+						{
+							try
+							{
+								JArray afterBattleInfo = JArray.Parse(data[1]);
+								{
+									var winningTeam = (int?)afterBattleInfo[0]?["common"]?["winnerTeam"];
+									if (winningTeam is not null)
+									{
+										int winningTeamInt = winningTeam.Value;
+										replayInfoWithVehicles.BattleResult = winningTeamInt switch
+										{
+											0 => BattleResult.draw,
+											1 => BattleResult.victory,
+											2 => BattleResult.defeat,
+											_ => BattleResult.undefined
+										};
+									}
+								}
+								{									
+									int teamSurvived = 0;
+									int enemySurvived = 0;
+									foreach (var property in afterBattleInfo[1].Children())
+									{
+										var value = property.First();
+										if (value is not null)
+										{
+											int? team = (int?)value["team"];
+											bool? isAlive = (bool?)value["isAlive"];
+											if (team.HasValue && isAlive.HasValue)
+											{
+												if (team.Value == 1 && isAlive.Value)
+												{
+													teamSurvived++;
+												}
+												else if (team.Value == 2 && isAlive.Value)
+												{
+													enemySurvived++;
+												}
+											}
+										}
+									}
+									replayInfoWithVehicles.TeamSurvived = teamSurvived;
+									replayInfoWithVehicles.EnemySurvived = enemySurvived;
+								}
+							}
+							catch
+							{
+
+							}
+						}
+					}
+					return replayInfoWithVehicles;
+				}
+			}
+			catch
+			{
+			}
+			return null;
+		}
+
+		private static TierPosition GetTierPosition(int tier, int minTier, int maxTier)
+		{
+			int tierLambda = maxTier - minTier;
+			switch (tierLambda)
+			{
+				case (0):
+					return TierPosition.one_tier;
+				case (1):
+					if (tier == maxTier) return TierPosition.two_tier_top;
+					return TierPosition.two_tier_bottom;
+				case (2):
+					if (tier == maxTier) return TierPosition.three_tier_top;
+					if (tier == minTier) return TierPosition.three_tier_bottom;
+					return TierPosition.three_tier_middle;
+				default:
+					return TierPosition.undefined;
+			}
+		}
+
+		private static (int minTier, int maxTier) GetTierSpread(Dictionary<string, Tank> players, Dictionary<string, (string name, int tier)> tankDict)
+		{
+			IEnumerable<int> tiers = players
+				.Select(player =>
+				{
+					string? vehicleType = player.Value.VehicleType;
+					if (vehicleType == null) { return 0; }
+					string vehicleTag = vehicleType[(vehicleType.IndexOf(":") + 1)..];
+					if (tankDict.ContainsKey(vehicleTag))
+					{
+						return tankDict[vehicleTag].tier;
+					}
+					return 0;
+				})
+				.Distinct()
+				.Where(tier => tier != 0);
+
+			return (tiers.Min(), tiers.Max());
+		}
+	}
 }

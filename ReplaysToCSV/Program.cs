@@ -4,6 +4,7 @@ using CsvHelper.Configuration;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 
 namespace ReplaysToCSV
 {
@@ -13,6 +14,7 @@ namespace ReplaysToCSV
         private static readonly CsvConfiguration config = new(CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
+            Encoding = Encoding.UTF8
         };
 
         public static void Main(string[] args)
@@ -49,13 +51,12 @@ namespace ReplaysToCSV
             {
                 Console.WriteLine("Please enter two arguments, separated by a single space.");
                 Console.WriteLine("Arguments: Folder path, Include Subdirectiories (true/false)");
+                Console.WriteLine(@"Example: ./ReplaysToCSV.exe ""path/to/folder"" ""true""");
                 return;
             }
 
             Console.WriteLine($"Path: {path}");
             Console.WriteLine($"Include subdirectories: {includeSubDirectories}");
-
-            var replayReader = new ReplayReader();
 
             // get all .wotreplay files in the folder
             IEnumerable<string> filePaths = Directory.EnumerateFiles(
@@ -73,10 +74,13 @@ namespace ReplaysToCSV
 
             int replayCount = 0;
 
+            // all available tanks
+            var tankDict = GameData.GetTankDictionary();
+
             // get a ReplayInfo object for each file
             var result = Parallel.ForEach(filePaths, filePath =>
                 {
-                    var replay = replayReader.ReadReplayFile(filePath);
+                    var replay = ReplayReader.ReadReplayFile(filePath, tankDict);
                     if (replay is null)
                     {
                         failedReplays++;
