@@ -116,7 +116,7 @@
 	"60_asia_miao": {
 		"name_i18n": "Pearl River",
 		"camouflage_type": "summer",
-		"description": "Rugged terrain is favorable for various battle tactics—ambushes, unexpected flanking maneuvers, and close encounters. Moving along the riverbed will allow you to swiftly approach the enemy base and strike from the rear. The hill in the central part of the map is a strategic area and taking control of it will help you launch an attack in almost any direction.",
+		"description": "Rugged terrain is favorable for various battle tacticsâ€”ambushes, unexpected flanking maneuvers, and close encounters. Moving along the riverbed will allow you to swiftly approach the enemy base and strike from the rear. The hill in the central part of the map is a strategic area and taking control of it will help you launch an attack in almost any direction.",
 		"arena_id": "60_asia_miao"
 	},
 	"01_karelia": {
@@ -146,7 +146,7 @@
 	"83_kharkiv": {
 		"name_i18n": "Kharkov",
 		"camouflage_type": "winter",
-		"description": "A deep tank ditch divides the map into two parts—the city and the suburb. In conditions of urban warfare, make use of frequent cover, piles of rubble, and barricades. The open map areas pose a threat to stationary vehicles, exposing them to long-range fire and providing no safe cover from SPGs, which commands an active style of play with rapid changes of position.",
+		"description": "A deep tank ditch divides the map into two partsâ€”the city and the suburb. In conditions of urban warfare, make use of frequent cover, piles of rubble, and barricades. The open map areas pose a threat to stationary vehicles, exposing them to long-range fire and providing no safe cover from SPGs, which commands an active style of play with rapid changes of position.",
 		"arena_id": "83_kharkiv"
 	},
 	"04_himmelsdorf": {
@@ -274,5 +274,59 @@
 		"camouflage_type": "summer",
 		"description": "In the centre of the map there is a large, boggy lake. A railway bridge and a ford on the one flank are defensible with scant forces, making it possible to concentrate main forces on the other flank.",
 		"arena_id": "44_north_america"
+	},
+	"117_canyon_ish": {
+		"name_i18n": "Canyon",
+		"camouflage_type": "desert",
+		"description": "",
+		"arena_id": "117_canyon_ish"
+	},
+	"119_turning_point_if": {
+		"name_i18n": "Volga",
+		"camouflage_type": "winter",
+		"description": "",
+		"arena_id": "119_turning_point_if"
+	},
+	"120_graf_zeppelin_ish": {
+		"name_i18n": "Airshipyard",
+		"camouflage_type": "winter",
+		"description": "",
+		"arena_id": "120_graf_zeppelin_ish"
+	},
+	"121_lost_paradise_v": {
+		"name_i18n": "Oyster Bay",
+		"camouflage_type": "summer",
+		"description": "",
+		"arena_id": "121_lost_paradise_v"
+	},
+	"122_frozen_land": {
+		"name_i18n": "Avalanche",
+		"camouflage_type": "winter",
+		"description": "",
+		"arena_id": "122_frozen_land"
+	},
+	"123_dalny_gg": {
+		"name_i18n": "Far East",
+		"camouflage_type": "summer",
+		"description": "",
+		"arena_id": "123_dalny_gg"
+	},
+	"125_highground_v": {
+		"name_i18n": "Foothills",
+		"camouflage_type": "summer",
+		"description": "",
+		"arena_id": "125_highground_v"
+	},
+	"126_asia_ravine_ish": {
+		"name_i18n": "Place of Power",
+		"camouflage_type": "summer",
+		"description": "",
+		"arena_id": "126_asia_ravine_ish"
+	},
+	"128_last_frontier_v": {
+		"name_i18n": "Outpost",
+		"camouflage_type": "summer",
+		"description": "",
+		"arena_id": "128_last_frontier_v"
 	}
 }
