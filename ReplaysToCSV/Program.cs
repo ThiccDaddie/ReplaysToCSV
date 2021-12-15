@@ -10,6 +10,7 @@ namespace ReplaysToCSV
 {
     public class Program
     {
+        private static readonly CancellationTokenSource _cancellationTokenSource = new();
 
         private static readonly CsvConfiguration config = new(CultureInfo.InvariantCulture)
         {
@@ -17,8 +18,10 @@ namespace ReplaysToCSV
             Encoding = Encoding.UTF8
         };
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
+            var cancellationToken = _cancellationTokenSource.Token;
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(handleConsoleCancelEvent);
             // path to the folder of replays to parse
             string path;
             // incude subdirectories of said folder
@@ -58,6 +61,9 @@ namespace ReplaysToCSV
             Console.WriteLine($"Path: {path}");
             Console.WriteLine($"Include subdirectories: {includeSubDirectories}");
 
+            //
+            Console.WriteLine("Press ctrl+c at any time to cancel the operation.");
+
             // get all .wotreplay files in the folder
             IEnumerable<string> filePaths = Directory.EnumerateFiles(
                 path,
@@ -76,20 +82,29 @@ namespace ReplaysToCSV
 
             // all available tanks
             var tankDict = GameData.GetTankDictionary();
-            var mapDict = GameData.GetMapDictionary();
 
             // get a ReplayInfo object for each file
-            var result = Parallel.ForEach(filePaths, filePath =>
-                {
-                    var replay = ReplayReader.ReadReplayFile(filePath, tankDict, mapDict);
-                    if (replay is null)
+            try
+            {
+                await Parallel.ForEachAsync(filePaths, cancellationToken, async (filePath, cancellationToken) =>
                     {
-                        failedReplays++;
-                        return;
-                    }
-                    replays.Add(replay);
-                    replayCount++;
-                });
+                        cancellationToken.ThrowIfCancellationRequested();                        
+                        var replay = await ReplayReader.ReadReplayFile2(filePath, tankDict, cancellationToken);
+                        if (replay is null)
+                        {
+                            failedReplays++;
+                            return;
+                        }
+                        replays.Add(replay);
+                        replayCount++;
+                    });
+            }
+            catch (OperationCanceledException)
+			{
+                Console.WriteLine("Operation canceled.");
+                Console.ReadKey();
+                return;
+			}
             stopwatch.Stop();
 
             Console.WriteLine($"{failedReplays} replay(s) failed to parse.");
@@ -103,13 +118,21 @@ namespace ReplaysToCSV
                 using (var writer = new StreamWriter(csvPath))
                 using (var csv = new CsvWriter(writer, config))
                 {
-                    csv.WriteRecords(replays);
+                    await csv.WriteRecordsAsync(replays, cancellationToken);
+                    await csv.FlushAsync();
                 }
                 Console.WriteLine($"File created at {csvPath}");
             }
             Console.WriteLine();
             Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
+        }
+
+        protected static void handleConsoleCancelEvent(object? sender, ConsoleCancelEventArgs args)
+        {
+            Console.WriteLine("Canceling operation...");
+            args.Cancel = true;
+            _cancellationTokenSource.Cancel();
         }
     }
 }

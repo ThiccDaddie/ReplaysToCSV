@@ -1,6 +1,6 @@
 ﻿namespace ReplaysToCSV
 {
-    internal enum BattleResult
+    public enum BattleResult
 	{
         victory,
         defeat,
@@ -8,7 +8,7 @@
         undefined
 	}
 
-    internal enum TierPosition
+    public enum TierPosition
     {
         one_tier,
         two_tier_bottom,
@@ -19,28 +19,51 @@
         undefined
     }
 
-    internal class ReplayInfo
-    {
-        public string? PlayerVehicle { get; set; }
-        public string? PlayerName { get; set; }
-        public string? GameplayID { get; set; }
-        public string? MapName { get; set; }
-        public int? Tier { get; set; } = -1;
-        public TierPosition? TierPosition { get; set; } = ReplaysToCSV.TierPosition.undefined;
-        public int? DurationInSeconds { get; set; }        
-        public BattleResult? BattleResult { get; set; } = ReplaysToCSV.BattleResult.undefined;
-        public int? TeamSurvived { get; set; }
-        public int? EnemySurvived { get; set; }
+	public record ReplayInfo
+	{
+		public string? playerVehicle { get; set; }
+
+		public string? clientVersionFromXml { get; set; }
+
+		public string? clientVersionFromExe { get; set; }
+
+		public Dictionary<string, Vehicle>? vehicles { get; set; }
+
+		public string? regionCode { get; set; }
+
+		public int? playerID { get; set; }
+
+		public string? serverName { get; set; }
+
+		public string? mapDisplayName { get; set; }
+
+		public string? dateTime { get; set; }
+
+		public string? mapName { get; set; }
+
+		public string? gameplayID { get; set; }
+
+		public int? battleType { get; set; }
+
+		public bool? hasMods { get; set; }
+
+		public string? playerName { get; set; }
+
+		public int? tier { get; set; } = -1;
+
+		public TierPosition? tierPosition { get; set; } = ReplaysToCSV.TierPosition.undefined;
+
+		public int? durationInSeconds { get; set; }
+
+		public BattleResult? battleResult { get; set; } = ReplaysToCSV.BattleResult.undefined;
+
+		public int? teamSurvived { get; set; }
+
+		public int? enemySurvived { get; set; }
 	}
 
-    internal class ReplayInfoWithVehicles : ReplayInfo
-    {
-        public Dictionary<string, Tank>? Vehicles { get; set; }
-    }
-
-    internal class Tank
-    {
-        public string? Name { get; set; }
-        public string? VehicleType { get; set; }
-    }
+	public record Vehicle
+	{
+		public string? vehicleType { get; set; }
+	}
 }
