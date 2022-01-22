@@ -110,22 +110,29 @@ namespace ReplaysToCSV
 									if (value is not null)
 									{
 										int? team = (int?)value["team"];
-										string? isAliveString = value["isAlive"]?.ToString();
-										bool? isAliveNullable = null;
-										if (bool.TryParse(isAliveString, out bool isAlive))
+										if (!team.HasValue)
 										{
-											isAliveNullable = isAlive;
+											continue;
 										}
-										if (team.HasValue && isAliveNullable.HasValue)
+
+										string? isAliveString = value["isAlive"]?.ToString();
+										bool isAlive;
+										if (int.TryParse(isAliveString, out int isAliveInt))
 										{
-											if (team.Value == 1 && isAliveNullable.Value)
-											{
-												teamSurvived++;
-											}
-											else if (team.Value == 2 && isAliveNullable.Value)
-											{
-												enemySurvived++;
-											}
+											isAlive = Convert.ToBoolean(isAliveInt);
+										}
+										else
+										{
+											isAlive = Convert.ToBoolean(isAliveString);
+										}
+
+										if (team.Value == 1 && isAlive)
+										{
+											teamSurvived++;
+										}
+										else if (team.Value == 2 && isAlive)
+										{
+											enemySurvived++;
 										}
 									}
 								}
